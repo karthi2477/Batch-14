@@ -1,0 +1,64 @@
+import tweepy
+from textblob import TextBlob
+import matplotlib.pyplot as plt
+from wordcloud import WordCloud
+
+# Twitter API credentials (you must replace these with your own)
+api_key = 'YOUR_API_KEY'
+api_secret = 'YOUR_API_SECRET'
+access_token = 'YOUR_ACCESS_TOKEN'
+access_secret = 'YOUR_ACCESS_SECRET'
+
+# Authenticate
+auth = tweepy.OAuth1UserHandler(api_key, api_secret, access_token, access_secret)
+api = tweepy.API(auth)
+
+# Function to clean tweet text
+def clean_tweet(tweet):
+    return ' '.join(word for word in tweet.split() if not word.startswith('http') and not word.startswith('@'))
+
+# Function to analyze sentiment
+def analyze_sentiment(text):
+    analysis = TextBlob(text)
+    polarity = analysis.sentiment.polarity
+    if polarity > 0:
+        return 'Positive'
+    elif polarity == 0:
+        return 'Neutral'
+    else:
+        return 'Negative'
+
+# Fetch tweets
+def fetch_tweets(query, count=100):
+    tweets = api.search_tweets(q=query, lang='en', count=count)
+    data = []
+    for tweet in tweets:
+        text = clean_tweet(tweet.text)
+        sentiment = analyze_sentiment(text)
+        data.append((text, sentiment))
+    return data
+
+# Main
+if __name__ == '__main__':
+    topic = input("Enter topic or hashtag to search: ")
+    tweets_data = fetch_tweets(topic, 200)
+
+    sentiments = [sentiment for _, sentiment in tweets_data]
+
+    # Plotting sentiment distribution
+    plt.figure(figsize=(6, 4))
+    plt.hist(sentiments, bins=3, edgecolor='black', color='skyblue')
+    plt.title(f"Sentiment Analysis for '{topic}'")
+    plt.xlabel("Sentiment")
+    plt.ylabel("Tweet Count")
+    plt.grid(True)
+    plt.show()
+
+    # WordCloud
+    all_text = ' '.join([text for text, _ in tweets_data])
+    wc = WordCloud(width=800, height=400, background_color='white').generate(all_text)
+    plt.figure(figsize=(10, 5))
+    plt.imshow(wc, interpolation='bilinear')
+    plt.axis('off')
+    plt.title("Word Cloud of Tweets")
+    plt.show()
